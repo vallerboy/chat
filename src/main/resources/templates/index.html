@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatex</title>
+    <link rel="stylesheet" type="text/css" href="/main.css"/>
+</head>
+<body>
+<div style="text-align: center">
+    <ul id="messages"></ul>
+
+    <form onsubmit="sendMessage(); return false;">
+        <input id="typedText" type="text" placeholder="Podaj wiadomość">
+    </form>
+</div>
+
+<script>
+    const webSocket = new WebSocket("ws://localhost:8080/chat");
+    webSocket.onopen = function (socket) {
+        console.log("Połączono z serwerkiem!");
+    }
+
+    //webSocket.onopen = s => console.log(s);
+
+
+</script>
+
+</body>
+</html>
