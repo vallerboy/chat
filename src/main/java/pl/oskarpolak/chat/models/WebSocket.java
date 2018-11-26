@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 @EnableWebSocket
 @Log
 public class WebSocket extends TextWebSocketHandler implements WebSocketConfigurer {
-    private List<WebSocketSession> sessions = new LinkedList<>();
+    private List<UserModel> sessions = new LinkedList<>();
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry webSocketHandlerRegistry) {
@@ -27,20 +27,35 @@ public class WebSocket extends TextWebSocketHandler implements WebSocketConfigur
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        sessions.add(session);
+        sessions.add(new UserModel(session));
         log.info("Ktoś połączył się  z naszym socketem");
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        sessions.remove(session);
+        sessions.removeIf(s -> s.getSession().getId().equals(session.getId()));
         log.info("Ktoś wyszedł");
+    }
+
+    private UserModel findUserBySession(WebSocketSession session){
+        return sessions.stream()
+                .filter(s -> s.getSession().getId().equals(session.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException());
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        for (WebSocketSession webSocketSession : sessions) {
-             webSocketSession.sendMessage(message);
+        UserModel sender = findUserBySession(session);
+        if(sender.getNickname() == null){
+            sender.setNickname(message.getPayload()); // jego nick = wiadomosc ktora wyslal
+            sender.getSession().sendMessage(new TextMessage("Ustawiłeś swój nick!"));
+            return;
+        }
+
+        for (UserModel user : sessions) {
+             user.getSession()
+                     .sendMessage(new TextMessage(sender.getNickname() + ": " + message.getPayload()));
         }
     }
 }
