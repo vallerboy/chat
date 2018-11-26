@@ -9,20 +9,35 @@
 <div style="text-align: center">
     <ul id="messages"></ul>
 
-    <form onsubmit="sendMessage(); return false;">
+    <form onsubmit="sendMessage(); return false;" action="#">
         <input id="typedText" type="text" placeholder="Podaj wiadomość">
     </form>
 </div>
 
 <script>
     const webSocket = new WebSocket("ws://localhost:8080/chat");
+    const inputWithMessage = document.getElementById("typedText");
+    const messages = document.getElementById("messages");
+
+    // Nawiazanie polaczenia z serwerem
     webSocket.onopen = function (socket) {
         console.log("Połączono z serwerkiem!");
-    }
+    };
+
+    //Przyjęcie wiadomosci od serwera
+    webSocket.onmessage = function (event) {
+        messages.innerHTML = messages.innerHTML + "<li>" + event.data + "</li>";
+        messages.scrollTop = messages.scrollHeight;
+    };
 
     //webSocket.onopen = s => console.log(s);
 
+    function sendMessage() {
+        let text = inputWithMessage.value;
+        inputWithMessage.value = "";
 
+        webSocket.send(text);
+    }
 </script>
 
 </body>
