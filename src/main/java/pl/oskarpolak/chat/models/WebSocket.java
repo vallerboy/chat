@@ -11,10 +11,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 @Component
@@ -48,6 +45,12 @@ public class WebSocket extends TextWebSocketHandler implements WebSocketConfigur
                 .orElseThrow(() -> new IllegalStateException());
     }
 
+    private Optional<UserModel> findUserByNick(String nickname){
+        return sessions.stream()
+                .filter(s -> s.getNickname() != null && s.getNickname().equals(nickname))
+                .findFirst();
+    }
+
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         UserModel sender = findUserBySession(session);
@@ -59,7 +62,19 @@ public class WebSocket extends TextWebSocketHandler implements WebSocketConfigur
             sender.setNickname(message.getPayload()); // jego nick = wiadomosc ktora wyslal
             sender.getSession().sendMessage(new TextMessage("Ustawiłeś swój nick!"));
 
+            if(sender.getNickname().equals("oskar")){
+                sender.setAdmin(true);
+                sender.getSession().sendMessage(new TextMessage("Zostałeś adminem"));
+            }
+
             sendMessageArchiveToUser(sender);
+            return;
+        }
+
+        checkIfMessageIsCommand(sender, message);
+
+        if(sender.isMute()){
+            sender.getSession().sendMessage(new TextMessage("Nie mozesz pisac"));
             return;
         }
 
@@ -69,6 +84,28 @@ public class WebSocket extends TextWebSocketHandler implements WebSocketConfigur
         }
 
         addMessageToArchive(sender.getNickname() + ": " + message.getPayload());
+    }
+
+    private void checkIfMessageIsCommand(UserModel sender, TextMessage message) throws IOException {
+        if(!sender.isAdmin()){
+            return;
+        }
+
+        if(message.getPayload().startsWith("/mute")){
+            String nick = message.getPayload().split(" ")[1];
+            Optional<UserModel> userToMuteOptional = findUserByNick(nick);
+            UserModel userToMute;
+            if(!userToMuteOptional.isPresent()){
+                sender.getSession().sendMessage(new TextMessage("Podany nick nie istnieje"));
+                return;
+            }
+
+            userToMute = userToMuteOptional.get();
+            userToMute.setMute(true);
+
+            sender.getSession().sendMessage(new TextMessage("Zmutowales popranie"));
+            userToMute.getSession().sendMessage(new TextMessage("Zostales zmutowany!@!@!@"));
+        }
     }
 
     private void sendMessageArchiveToUser(UserModel sender) throws IOException {

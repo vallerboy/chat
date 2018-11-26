@@ -9,6 +9,9 @@ import java.util.Objects;
 public class UserModel {
     private WebSocketSession session;
     private String nickname;
+    private boolean isAdmin;
+    private boolean isMute;
+
 
 
     public UserModel(WebSocketSession session){
